@@ -77,8 +77,18 @@ function normalizeText(text) {
     .trim();
 }
 
+function cleanChatText(text) {
+  return text
+    .replace(/[\u200e\u200f\u202a-\u202e]/g, "")
+    .replace(/\u00a0/g, " ")
+    .replace(/[“”]/g, '"')
+    .replace(/[’]/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function parseExpense(rawText) {
-  const text = rawText.trim();
+  const text = cleanChatText(rawText);
   const valueMatch = text.match(/(?:r\$\s*)?(\d+(?:[.,]\d{1,2})?)/i);
 
   if (!valueMatch) {
@@ -113,7 +123,12 @@ function detectCategory(description) {
         const normalizedWord = normalizeText(word);
         return normalizedWord.includes(" ")
           ? normalized.includes(normalizedWord)
-          : tokens.includes(normalizedWord);
+          : tokens.some(
+              (token) =>
+                token === normalizedWord ||
+                (token.length >= 4 && normalizedWord.startsWith(token)) ||
+                (normalizedWord.length >= 4 && token.startsWith(normalizedWord)),
+            );
       }),
     ) || categories.at(-1)
   );
@@ -204,25 +219,47 @@ function shouldIgnoreExpenseLine(line) {
   return false;
 }
 
+function splitExpenseText(text) {
+  const cleanText = cleanChatText(text);
+  const valueMatches = [...cleanText.matchAll(/(?:r\$\s*)?\d+(?:[.,]\d{1,2})?(?:\s*reais?)?/gi)];
+
+  if (valueMatches.length <= 1) {
+    return [cleanText];
+  }
+
+  const firstPrefix = cleanText.slice(0, valueMatches[0].index).trim();
+  const startsWithValue = !firstPrefix;
+
+  if (startsWithValue) {
+    return valueMatches
+      .map((match, index) => cleanText.slice(match.index, valueMatches[index + 1]?.index ?? cleanText.length).trim())
+      .filter(Boolean);
+  }
+
+  return [cleanText];
+}
+
 function splitChatExpenses(rawText) {
   const lines = rawText
-    .split(/\r?\n/)
-    .map((line) => line.trim())
+    .split(/\r?\n|\u2028|\u2029/)
+    .map((line) => cleanChatText(line))
     .filter(Boolean);
   const entries = [];
   let currentDate = localDateValue(new Date());
 
   lines.forEach((line) => {
-    const messageMatch = line.match(/^\[(\d{2}:\d{2}),\s*(\d{2}\/\d{2}\/\d{4})\]\s*([^:]+):\s*(.*)$/);
-    const text = messageMatch ? messageMatch[4].trim() : line;
+    const messageMatch = line.match(/^\[[^\]]*?(\d{2}\/\d{2}\/\d{4})[^\]]*\]\s*([^:]+):\s*(.*)$/);
+    const text = messageMatch ? messageMatch[3].trim() : line;
 
     if (messageMatch) {
-      currentDate = dateFromWhatsApp(messageMatch[2]) || currentDate;
+      currentDate = dateFromWhatsApp(messageMatch[1]) || currentDate;
     }
 
-    if (!shouldIgnoreExpenseLine(text)) {
-      entries.push({ text, date: currentDate });
-    }
+    splitExpenseText(text).forEach((expenseText) => {
+      if (!shouldIgnoreExpenseLine(expenseText)) {
+        entries.push({ text: expenseText, date: currentDate });
+      }
+    });
   });
 
   return entries;
@@ -231,7 +268,7 @@ function splitChatExpenses(rawText) {
 function parseExpenseInput(rawText) {
   const entries = rawText.includes("\n") || rawText.includes("[")
     ? splitChatExpenses(rawText)
-    : [{ text: rawText.trim(), date: localDateValue(new Date()) }];
+    : splitExpenseText(rawText).map((text) => ({ text, date: localDateValue(new Date()) }));
 
   return entries
     .map((entry) => {
