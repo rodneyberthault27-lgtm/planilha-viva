@@ -200,6 +200,27 @@ function deleteExpense(id) {
   render();
 }
 
+function updateExpenseCategory(id, categoryName) {
+  const category = categories.find((item) => item.name === categoryName);
+
+  if (!category) {
+    return;
+  }
+
+  expenses = expenses.map((expense) =>
+    expense.id === id
+      ? {
+          ...expense,
+          category: category.name,
+          categoryColor: category.color,
+        }
+      : expense,
+  );
+
+  saveExpenses();
+  render();
+}
+
 function render() {
   const selected = getSelectedExpenses();
   const categoryTotals = totalsByCategory(selected);
@@ -252,6 +273,16 @@ function renderExpenses(container, list, withDelete) {
 
   list.forEach((expense) => {
     const category = categories.find((item) => item.name === expense.category) || categories.at(-1);
+    const categoryControl = withDelete
+      ? `<label class="category-select-label">
+          <span class="sr-only">Categoria de ${expense.description}</span>
+          <select class="category-select" data-expense-id="${expense.id}" style="border-color:${category.color}; color:${category.color}">
+            ${categories
+              .map((item) => `<option value="${item.name}" ${item.name === category.name ? "selected" : ""}>${item.name}</option>`)
+              .join("")}
+          </select>
+        </label>`
+      : `<span class="category-pill" style="background:${category.color}22; color:${category.color}">${expense.category}</span>`;
     const item = document.createElement("article");
     item.className = "expense-item";
     item.innerHTML = `
@@ -259,11 +290,14 @@ function renderExpenses(container, list, withDelete) {
         <strong>${expense.description}</strong>
         <span>${dateLabel(expense.date)} &middot; ${expense.rawText}</span>
       </div>
-      <span class="category-pill" style="background:${category.color}22; color:${category.color}">${expense.category}</span>
+      ${categoryControl}
       <span class="amount">${currency(expense.amount)}</span>
     `;
 
     if (withDelete) {
+      const select = item.querySelector(".category-select");
+      select.addEventListener("change", (event) => updateExpenseCategory(expense.id, event.target.value));
+
       const button = document.createElement("button");
       button.className = "delete-button";
       button.type = "button";

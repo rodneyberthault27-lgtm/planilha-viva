@@ -372,6 +372,22 @@ button {
   white-space: nowrap;
 }
 
+.category-select-label {
+  min-width: 150px;
+}
+
+.category-select {
+  appearance: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  min-height: 38px;
+  padding: 0 8px;
+  width: 100%;
+}
+
 .amount {
   font-weight: 800;
   white-space: nowrap;
@@ -695,8 +711,13 @@ button {
     padding: 12px;
   }
 
-  .expense-item .category-pill {
+  .expense-item .category-pill,
+  .expense-item .category-select-label {
     justify-self: start;
+  }
+
+  .category-select-label {
+    min-width: min(100%, 180px);
   }
 
   .amount {
