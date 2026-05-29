@@ -224,17 +224,6 @@ button {
   width: 100%;
 }
 
-.sidebar-button {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 8px;
-  color: #ffffff;
-  font-weight: 800;
-  margin-top: 10px;
-  min-height: 42px;
-  width: 100%;
-}
-
 .main {
   padding: 32px;
   min-width: 0;
@@ -696,11 +685,6 @@ button {
     justify-self: end;
     max-width: 190px;
     min-height: 40px;
-  }
-
-  .sidebar-button {
-    grid-column: 1 / -1;
-    margin-top: 0;
   }
 
   .nav-tabs {

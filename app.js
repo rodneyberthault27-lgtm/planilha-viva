@@ -62,7 +62,6 @@ const elements = {
   reportTable: document.querySelector("#reportTable"),
   reportMonth: document.querySelector("#reportMonth"),
   exportButton: document.querySelector("#exportButton"),
-  exportLeadsButton: document.querySelector("#exportLeadsButton"),
   clearButton: document.querySelector("#clearButton"),
   seedButton: document.querySelector("#seedButton"),
   emptyTemplate: document.querySelector("#emptyStateTemplate"),
@@ -685,6 +684,11 @@ function exportLeadsCsv() {
   URL.revokeObjectURL(url);
 }
 
+window.PlanilhaVivaAdmin = {
+  exportLeads: exportLeadsCsv,
+  leads: loadLeads,
+};
+
 function seedExamples() {
   const examples = ["20 de uber", "45 almoco", "120 mercado", "89 farmacia", "1500 aluguel"];
   examples.forEach((text, index) => {
@@ -737,7 +741,6 @@ elements.input.addEventListener("input", () => {
 });
 elements.monthFilter.addEventListener("change", render);
 elements.exportButton.addEventListener("click", exportCsv);
-elements.exportLeadsButton.addEventListener("click", exportLeadsCsv);
 elements.clearButton.addEventListener("click", clearAll);
 elements.seedButton.addEventListener("click", seedExamples);
 
