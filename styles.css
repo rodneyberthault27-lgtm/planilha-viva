@@ -27,7 +27,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -222,17 +223,20 @@ button {
   grid-template-columns: 1fr 150px;
 }
 
-.expense-form input {
+.expense-form textarea {
   border: 1px solid var(--line);
   border-radius: 8px;
   font-size: 1rem;
+  line-height: 1.4;
+  max-height: 220px;
   min-height: 52px;
   outline: 0;
-  padding: 0 16px;
+  padding: 14px 16px;
+  resize: none;
   width: 100%;
 }
 
-.expense-form input:focus {
+.expense-form textarea:focus {
   border-color: var(--green);
   box-shadow: 0 0 0 4px rgba(31, 122, 79, 0.12);
 }
@@ -253,6 +257,10 @@ button {
 
 .preview strong {
   color: var(--text);
+}
+
+.preview-list {
+  margin-top: 8px;
 }
 
 .view {
@@ -639,7 +647,7 @@ button {
     line-height: 1.25;
   }
 
-  .expense-form input {
+  .expense-form textarea {
     font-size: 1rem;
     min-height: 54px;
   }

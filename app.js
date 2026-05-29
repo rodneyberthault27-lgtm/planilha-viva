@@ -4,17 +4,17 @@ const categories = [
   {
     name: "Transporte",
     color: "#2767b1",
-    words: ["uber", "99", "onibus", "bus", "metro", "trem", "taxi", "corrida", "passagem", "bilhete", "cartao transporte", "gasolina", "alcool", "etanol", "diesel", "posto", "pedagio", "estacionamento", "zona azul", "mecanico", "oficina", "lavagem"],
+    words: ["uber", "99", "onibus", "bus", "metro", "trem", "taxi", "corrida", "passagem", "bilhete", "vale transporte", "cartao transporte", "gasolina", "alcool", "etanol", "diesel", "posto", "pedagio", "estacionamento", "zona azul", "mecanico", "oficina", "lavagem"],
   },
   {
     name: "Alimentacao",
     color: "#1f7a4f",
-    words: ["almoco", "jantar", "cafe", "lanche", "suco", "agua mineral", "refrigerante", "pizza", "hamburguer", "sushi", "marmita", "mercado", "supermercado", "hortifruti", "acougue", "padaria", "feira", "restaurante", "lanchonete", "ifood", "rappi", "delivery", "sorvete", "chocolate"],
+    words: ["almoco", "jantar", "cafe", "lanche", "suco", "agua mineral", "refrigerante", "pizza", "hamburguer", "mcdonald", "mcdonalds", "japones", "sushi", "marmita", "mercado", "supermercado", "hortifruti", "acougue", "padaria", "feira", "restaurante", "lanchonete", "ifood", "rappi", "delivery", "sorvete", "chocolate"],
   },
   {
     name: "Casa",
     color: "#7652a6",
-    words: ["aluguel", "condominio", "luz", "energia", "agua", "gas", "internet", "wifi", "telefone", "celular", "limpeza", "faxina", "detergente", "sabao", "moveis", "cama", "mesa", "cadeira", "manutencao casa", "reparo"],
+    words: ["aluguel", "condominio", "luz", "energia", "agua", "gas", "internet", "wifi", "telefone", "celular", "limpeza", "faxina", "detergente", "sabao", "chuveiro", "lampada", "moveis", "cama", "mesa", "cadeira", "manutencao casa", "reparo"],
   },
   {
     name: "Saude",
@@ -29,7 +29,7 @@ const categories = [
   {
     name: "Trabalho",
     color: "#36525f",
-    words: ["ferramenta", "curso", "aula", "livro tecnico", "reuniao", "material", "adobe", "canva", "software", "dominio", "hospedagem", "coworking", "cliente", "freela", "freelancer", "impressao", "papelaria"],
+    words: ["ferramenta", "curso", "aula", "livro tecnico", "reuniao", "material", "chat gpt", "chatgpt", "grok", "adobe", "canva", "software", "dominio", "hospedagem", "coworking", "cliente", "freela", "freelancer", "impressao", "papelaria"],
   },
   {
     name: "Compras",
@@ -61,6 +61,12 @@ const elements = {
 
 let expenses = loadExpenses();
 
+function escapeHtml(value) {
+  const div = document.createElement("div");
+  div.textContent = value;
+  return div.innerHTML;
+}
+
 function normalizeText(text) {
   return text
     .toLowerCase()
@@ -82,7 +88,7 @@ function parseExpense(rawText) {
   const amount = Number(valueMatch[1].replace(",", "."));
   const description = text
     .replace(valueMatch[0], "")
-    .replace(/\b(de|da|do|para|com|em|no|na)\b/gi, " ")
+    .replace(/\b(reais?|r\$|de|da|do|para|com|em|no|na)\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -142,6 +148,16 @@ function localDateValue(date) {
   ].join("-");
 }
 
+function dateFromWhatsApp(value) {
+  const [, day, month, year] = value.match(/(\d{2})\/(\d{2})\/(\d{4})/) || [];
+
+  if (!day || !month || !year) {
+    return null;
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
 function loadExpenses() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -170,6 +186,124 @@ function totalsByCategory(list) {
   });
 }
 
+function expenseKey(expense) {
+  return [expense.date, expense.amount.toFixed(2), normalizeText(expense.description)].join("|");
+}
+
+function shouldIgnoreExpenseLine(line) {
+  const normalized = normalizeText(line);
+
+  if (!normalized || !/\d/.test(normalized)) {
+    return true;
+  }
+
+  if (/^(so deus|fiz em|parcelei|dividi|paguei em)\b/.test(normalized)) {
+    return true;
+  }
+
+  return false;
+}
+
+function splitChatExpenses(rawText) {
+  const lines = rawText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const entries = [];
+  let currentDate = localDateValue(new Date());
+
+  lines.forEach((line) => {
+    const messageMatch = line.match(/^\[(\d{2}:\d{2}),\s*(\d{2}\/\d{2}\/\d{4})\]\s*([^:]+):\s*(.*)$/);
+    const text = messageMatch ? messageMatch[4].trim() : line;
+
+    if (messageMatch) {
+      currentDate = dateFromWhatsApp(messageMatch[2]) || currentDate;
+    }
+
+    if (!shouldIgnoreExpenseLine(text)) {
+      entries.push({ text, date: currentDate });
+    }
+  });
+
+  return entries;
+}
+
+function parseExpenseInput(rawText) {
+  const entries = rawText.includes("\n") || rawText.includes("[")
+    ? splitChatExpenses(rawText)
+    : [{ text: rawText.trim(), date: localDateValue(new Date()) }];
+
+  return entries
+    .map((entry) => {
+      const parsed = parseExpense(entry.text);
+      return parsed && parsed.amount > 0 ? { ...entry, ...parsed } : null;
+    })
+    .filter(Boolean);
+}
+
+function uniqueParsedExpenses(parsedExpenses) {
+  const seen = new Set(expenses.map(expenseKey));
+  const unique = [];
+  let duplicated = 0;
+
+  parsedExpenses.forEach((expense) => {
+    const key = expenseKey(expense);
+
+    if (seen.has(key)) {
+      duplicated += 1;
+      return;
+    }
+
+    seen.add(key);
+    unique.push(expense);
+  });
+
+  return { unique, duplicated };
+}
+
+function addExpenses(rawText) {
+  const parsedExpenses = parseExpenseInput(rawText);
+
+  if (!parsedExpenses.length) {
+    elements.preview.innerHTML = "Nao encontrei gastos com valor e descricao.";
+    return;
+  }
+
+  const now = new Date();
+  const { unique, duplicated } = uniqueParsedExpenses(parsedExpenses);
+  const added = [];
+
+  unique.forEach((expense, index) => {
+    const nextExpense = {
+      id: crypto.randomUUID(),
+      date: expense.date,
+      createdAt: new Date(now.getTime() - index * 1000).toISOString(),
+      rawText: expense.text,
+      amount: expense.amount,
+      description: expense.description,
+      category: expense.category,
+      categoryColor: expense.categoryColor,
+    };
+
+    added.push(nextExpense);
+  });
+
+  if (!added.length) {
+    elements.preview.innerHTML = "Esses gastos ja estavam cadastrados.";
+    return;
+  }
+
+  expenses = [...added, ...expenses];
+  saveExpenses();
+  elements.input.value = "";
+  resizeInput();
+  updatePreview();
+  render();
+
+  const skippedText = duplicated ? ` ${duplicated} duplicado${duplicated > 1 ? "s" : ""} ignorado${duplicated > 1 ? "s" : ""}.` : "";
+  elements.preview.innerHTML = `${added.length} gasto${added.length > 1 ? "s" : ""} importado${added.length > 1 ? "s" : ""}.${skippedText}`;
+}
+
 function addExpense(rawText) {
   const parsed = parseExpense(rawText);
   if (!parsed || parsed.amount <= 0) {
@@ -190,6 +324,7 @@ function addExpense(rawText) {
 
   saveExpenses();
   elements.input.value = "";
+  resizeInput();
   updatePreview();
   render();
 }
@@ -361,13 +496,40 @@ function monthName(value) {
   });
 }
 
-function updatePreview() {
-  const parsed = parseExpense(elements.input.value);
+function resizeInput() {
+  elements.input.style.height = "auto";
+  elements.input.style.height = `${Math.min(elements.input.scrollHeight, 220)}px`;
+}
 
-  if (!elements.input.value.trim()) {
+function updatePreview() {
+  const text = elements.input.value;
+
+  if (!text.trim()) {
     elements.preview.textContent = "";
     return;
   }
+
+  const parsedList = parseExpenseInput(text);
+
+  if (parsedList.length > 1) {
+    const { unique, duplicated } = uniqueParsedExpenses(parsedList);
+    const total = unique.reduce((sum, expense) => sum + expense.amount, 0);
+    const sample = unique
+      .slice(0, 3)
+      .map((expense) => `${dateLabel(expense.date)}: ${escapeHtml(expense.description)} (${currency(expense.amount)})`)
+      .join("<br>");
+    const rest = unique.length > 3 ? `<br>+ ${unique.length - 3} outro${unique.length - 3 > 1 ? "s" : ""}` : "";
+    const duplicateText = duplicated ? ` &middot; ${duplicated} duplicado${duplicated > 1 ? "s" : ""} ignorado${duplicated > 1 ? "s" : ""}` : "";
+    elements.preview.innerHTML = `
+      <strong>${unique.length} gasto${unique.length > 1 ? "s" : ""} novo${unique.length > 1 ? "s" : ""}</strong>
+      &middot; total ${currency(total)}
+      ${duplicateText}
+      <div class="preview-list">${sample}${rest}</div>
+    `;
+    return;
+  }
+
+  const parsed = parsedList[0];
 
   if (!parsed) {
     elements.preview.textContent = "Ainda falta o valor.";
@@ -376,7 +538,7 @@ function updatePreview() {
 
   elements.preview.innerHTML = `
     <strong>${currency(parsed.amount)}</strong>
-    &middot; ${parsed.description}
+    &middot; ${escapeHtml(parsed.description)}
     &middot; <strong>${parsed.category}</strong>
   `;
 }
@@ -439,14 +601,18 @@ document.querySelectorAll(".nav-tab").forEach((tab) => {
 
 elements.form.addEventListener("submit", (event) => {
   event.preventDefault();
-  addExpense(elements.input.value);
+  addExpenses(elements.input.value);
 });
 
-elements.input.addEventListener("input", updatePreview);
+elements.input.addEventListener("input", () => {
+  resizeInput();
+  updatePreview();
+});
 elements.monthFilter.addEventListener("change", render);
 elements.exportButton.addEventListener("click", exportCsv);
 elements.clearButton.addEventListener("click", clearAll);
 elements.seedButton.addEventListener("click", seedExamples);
 
 elements.monthFilter.value = currentMonthValue();
+resizeInput();
 render();
