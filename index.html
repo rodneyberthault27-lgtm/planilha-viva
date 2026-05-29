@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Planilha Viva</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">PV</span>
+          <div>
+            <strong>Planilha Viva</strong>
+            <span>Controle inteligente</span>
+          </div>
+        </div>
+
+        <nav class="nav-tabs" aria-label="Navegacao principal">
+          <button class="nav-tab is-active" data-view="dashboard" type="button">
+            <span aria-hidden="true">&#8962;</span>
+            Dashboard
+          </button>
+          <button class="nav-tab" data-view="add" type="button">
+            <span aria-hidden="true">+</span>
+            Adicionar
+          </button>
+          <button class="nav-tab" data-view="categories" type="button">
+            <span aria-hidden="true">&#9638;</span>
+            Categorias
+          </button>
+          <button class="nav-tab" data-view="report" type="button">
+            <span aria-hidden="true">&#9719;</span>
+            Relatorio
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <label for="monthFilter">Mes</label>
+          <input id="monthFilter" type="month" />
+        </div>
+      </aside>
+
+      <main class="main">
+        <section class="topbar">
+          <div>
+            <p class="eyebrow">Hoje</p>
+            <h1>Planilha Viva</h1>
+          </div>
+          <div class="topbar-actions">
+            <button class="ghost-button" id="seedButton" type="button">Exemplos</button>
+            <button class="ghost-button danger" id="clearButton" type="button">Limpar</button>
+          </div>
+        </section>
+
+        <section class="smart-input-panel" aria-labelledby="expenseTitle">
+          <div>
+            <p class="eyebrow">Caixa inteligente</p>
+            <h2 id="expenseTitle">O que voce gastou hoje?</h2>
+          </div>
+          <form id="expenseForm" class="expense-form">
+            <label class="sr-only" for="expenseInput">Digite seu gasto</label>
+            <input id="expenseInput" autocomplete="off" placeholder="20 uber para reuniao" />
+            <button type="submit">Adicionar</button>
+          </form>
+          <div class="preview" id="parsePreview" aria-live="polite"></div>
+        </section>
+
+        <section class="view is-visible" data-view-panel="dashboard">
+          <div class="metric-grid">
+            <article class="metric">
+              <span>Total do mes</span>
+              <strong id="monthTotal">R$ 0,00</strong>
+            </article>
+            <article class="metric">
+              <span>Maior categoria</span>
+              <strong id="topCategory">-</strong>
+            </article>
+            <article class="metric">
+              <span>Ultimos gastos</span>
+              <strong id="expenseCount">0</strong>
+            </article>
+          </div>
+
+          <div class="dashboard-grid">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Para onde foi</h2>
+              </div>
+              <div class="bar-chart" id="barChart"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Gastos recentes</h2>
+              </div>
+              <div class="expense-list" id="recentList"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" data-view-panel="add">
+          <div class="panel wide">
+            <div class="panel-header">
+              <h2>Lista de gastos</h2>
+              <button class="ghost-button" id="exportButton" type="button">Exportar CSV</button>
+            </div>
+            <div class="expense-list full" id="expenseList"></div>
+          </div>
+        </section>
+
+        <section class="view" data-view-panel="categories">
+          <div class="category-grid" id="categoryGrid"></div>
+        </section>
+
+        <section class="view" data-view-panel="report">
+          <div class="panel wide">
+            <div class="panel-header">
+              <h2>Relatorio mensal</h2>
+              <span id="reportMonth"></span>
+            </div>
+            <div class="report-table" id="reportTable"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <template id="emptyStateTemplate">
+      <div class="empty-state">
+        <strong>Nenhum gasto neste mes</strong>
+        <span>Digite algo como "45 almoco" para comecar.</span>
+      </div>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
