@@ -216,7 +216,9 @@ function currentLead() {
 
 function showApp() {
   elements.leadPage.classList.add("is-hidden");
+  elements.leadPage.hidden = true;
   elements.appShell.classList.remove("is-hidden");
+  elements.appShell.hidden = false;
   resizeInput();
   render();
 }
