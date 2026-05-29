@@ -1,4 +1,6 @@
 const STORAGE_KEY = "planilha-viva-expenses-v1";
+const LEADS_KEY = "planilha-viva-leads-v1";
+const CURRENT_LEAD_KEY = "planilha-viva-current-lead-v1";
 
 const categories = [
   {
@@ -40,6 +42,12 @@ const categories = [
 ];
 
 const elements = {
+  appShell: document.querySelector("#appShell"),
+  leadPage: document.querySelector("#leadPage"),
+  leadForm: document.querySelector("#leadForm"),
+  leadName: document.querySelector("#leadName"),
+  leadPhone: document.querySelector("#leadPhone"),
+  leadEmail: document.querySelector("#leadEmail"),
   form: document.querySelector("#expenseForm"),
   input: document.querySelector("#expenseInput"),
   preview: document.querySelector("#parsePreview"),
@@ -54,6 +62,7 @@ const elements = {
   reportTable: document.querySelector("#reportTable"),
   reportMonth: document.querySelector("#reportMonth"),
   exportButton: document.querySelector("#exportButton"),
+  exportLeadsButton: document.querySelector("#exportLeadsButton"),
   clearButton: document.querySelector("#clearButton"),
   seedButton: document.querySelector("#seedButton"),
   emptyTemplate: document.querySelector("#emptyStateTemplate"),
@@ -183,6 +192,62 @@ function loadExpenses() {
 
 function saveExpenses() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+}
+
+function loadLeads() {
+  try {
+    return JSON.parse(localStorage.getItem(LEADS_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLeads(leads) {
+  localStorage.setItem(LEADS_KEY, JSON.stringify(leads));
+}
+
+function currentLead() {
+  try {
+    return JSON.parse(localStorage.getItem(CURRENT_LEAD_KEY));
+  } catch {
+    return null;
+  }
+}
+
+function showApp() {
+  elements.leadPage.classList.add("is-hidden");
+  elements.appShell.classList.remove("is-hidden");
+  resizeInput();
+  render();
+}
+
+function registerLead(event) {
+  event.preventDefault();
+
+  const lead = {
+    id: crypto.randomUUID(),
+    name: elements.leadName.value.trim(),
+    phone: elements.leadPhone.value.trim(),
+    email: elements.leadEmail.value.trim(),
+    createdAt: new Date().toISOString(),
+  };
+
+  if (!lead.name || !lead.phone) {
+    return;
+  }
+
+  const leads = loadLeads();
+  const duplicateIndex = leads.findIndex((item) => item.phone === lead.phone || (lead.email && item.email === lead.email));
+
+  if (duplicateIndex >= 0) {
+    leads[duplicateIndex] = { ...leads[duplicateIndex], ...lead, id: leads[duplicateIndex].id };
+  } else {
+    leads.push(lead);
+  }
+
+  saveLeads(leads);
+  localStorage.setItem(CURRENT_LEAD_KEY, JSON.stringify(lead));
+  showApp();
 }
 
 function getSelectedExpenses() {
@@ -596,6 +661,28 @@ function exportCsv() {
   URL.revokeObjectURL(url);
 }
 
+function exportLeadsCsv() {
+  const leads = loadLeads();
+
+  if (!leads.length) {
+    alert("Nenhum lead cadastrado neste navegador.");
+    return;
+  }
+
+  const header = ["Data", "Nome", "WhatsApp", "Email"];
+  const rows = leads.map((lead) => [lead.createdAt, lead.name, lead.phone, lead.email]);
+  const csv = [header, ...rows]
+    .map((row) => row.map((cell) => `"${String(cell || "").replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "planilha-viva-leads.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 function seedExamples() {
   const examples = ["20 de uber", "45 almoco", "120 mercado", "89 farmacia", "1500 aluguel"];
   examples.forEach((text, index) => {
@@ -641,15 +728,20 @@ elements.form.addEventListener("submit", (event) => {
   addExpenses(elements.input.value);
 });
 
+elements.leadForm.addEventListener("submit", registerLead);
 elements.input.addEventListener("input", () => {
   resizeInput();
   updatePreview();
 });
 elements.monthFilter.addEventListener("change", render);
 elements.exportButton.addEventListener("click", exportCsv);
+elements.exportLeadsButton.addEventListener("click", exportLeadsCsv);
 elements.clearButton.addEventListener("click", clearAll);
 elements.seedButton.addEventListener("click", seedExamples);
 
 elements.monthFilter.value = currentMonthValue();
-resizeInput();
-render();
+if (currentLead()) {
+  showApp();
+} else {
+  render();
+}

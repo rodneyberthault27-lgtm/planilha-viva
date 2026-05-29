@@ -10,7 +10,37 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="app-shell">
+    <section class="lead-page" id="leadPage">
+      <div class="lead-copy">
+        <span class="brand-mark">PV</span>
+        <p class="eyebrow">Gratis para usar</p>
+        <h1>Planilha Viva</h1>
+        <p>Organize gastos por mensagem, cole conversas do WhatsApp e veja tudo separado por categoria.</p>
+      </div>
+
+      <form class="lead-form" id="leadForm">
+        <div>
+          <p class="eyebrow">Acesso gratuito</p>
+          <h2>Crie seu cadastro</h2>
+        </div>
+        <label>
+          Nome
+          <input id="leadName" autocomplete="name" required placeholder="Seu nome" />
+        </label>
+        <label>
+          WhatsApp
+          <input id="leadPhone" autocomplete="tel" required placeholder="(11) 99999-9999" />
+        </label>
+        <label>
+          E-mail
+          <input id="leadEmail" autocomplete="email" type="email" placeholder="voce@email.com" />
+        </label>
+        <button type="submit">Entrar gratis</button>
+        <p class="lead-note">Sem cartao, sem mensalidade. Seus dados ficam salvos para liberar o acesso.</p>
+      </form>
+    </section>
+
+    <div class="app-shell is-hidden" id="appShell">
       <aside class="sidebar">
         <div class="brand">
           <span class="brand-mark">PV</span>
@@ -42,6 +72,7 @@
         <div class="sidebar-footer">
           <label for="monthFilter">Mes</label>
           <input id="monthFilter" type="month" />
+          <button class="sidebar-button" id="exportLeadsButton" type="button">Exportar leads</button>
         </div>
       </aside>
 
